@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
         :root {
@@ -236,6 +237,9 @@
         const TOKEN = '8616153416:AAHYp4lkOetXogz_ebqZPn1lXhUZLCjHAyY';
         const BASE_URL = `https://api.telegram.org/bot${TOKEN}/getUpdates`;
         
+        // Initialize Telegram Web App SDK
+        const tg = window.Telegram.WebApp;
+        
         let currentChatId = null;
         let pollingInterval = null;
         
@@ -251,6 +255,9 @@
 
         // ---------- INITIAL ANIMATION ----------
         window.addEventListener('load', () => {
+            tg.expand(); // Make it full screen in Telegram
+            tg.ready();
+            
             gsap.to("#app-container", {
                 opacity: 1,
                 y: 0,
@@ -262,6 +269,9 @@
 
         // ---------- UI STATE MANAGERS ----------
         function setConnectedState(id) {
+            if (!id) return;
+            currentChatId = id;
+            
             // Update Text
             idText.innerText = id;
             idText.classList.remove('text-zinc-600', 'tracking-[0.2em]');
@@ -283,7 +293,6 @@
 
             // Shield Icon Glow Up
             gsap.to(shieldPath, { stroke: "#30d158", duration: 0.5 });
-            document.querySelector('.icon-container')?.classList.add('shadow-[0_0_30px_rgba(48,209,88,0.3)]');
             
             // Pop Animation for Box
             gsap.fromTo(idBox, 
@@ -311,8 +320,16 @@
             }, 2000);
         }
 
-        // ---------- CORE LOGIC ----------
-        async function fetchUpdates() {
+        // ---------- HYBRID LOGIC ----------
+        async function syncSystem() {
+            // 1. ELITE METHOD: Use the SDK (Instant & Private to each user)
+            const user = tg.initDataUnsafe?.user;
+            if (user && user.id) {
+                setConnectedState(user.id);
+                return;
+            }
+
+            // 2. FALLBACK: Polling (If opened in external browser)
             try {
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), 8000);
@@ -322,21 +339,13 @@
                 });
                 clearTimeout(timeoutId);
                 
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                
                 if (data.ok && data.result && data.result.length > 0) {
                     const lastUpdate = data.result[data.result.length - 1];
-                    let chatId = null;
+                    // Updated to safely catch message, edited_message, or channel_post ID
+                    const chatId = lastUpdate.message?.chat?.id || lastUpdate.edited_message?.chat?.id || lastUpdate.channel_post?.chat?.id;
                     
-                    if (lastUpdate.message?.chat?.id) chatId = lastUpdate.message.chat.id;
-                    else if (lastUpdate.edited_message?.chat?.id) chatId = lastUpdate.edited_message.chat.id;
-                    else if (lastUpdate.channel_post?.chat?.id) chatId = lastUpdate.channel_post.chat.id;
-                    
-                    if (chatId && chatId !== currentChatId) {
-                        currentChatId = chatId;
-                        setConnectedState(currentChatId);
-                    }
+                    if (chatId) setConnectedState(chatId);
                 }
             } catch (err) {
                 if (err.name !== 'AbortError') showTempStatus('Sync Error', true);
@@ -346,37 +355,30 @@
         // ---------- INTERACTIONS ----------
         
         // Manual Refresh
-        refreshBtn.addEventListener('click', async (e) => {
+        refreshBtn.addEventListener('click', async () => {
             if(refreshBtn.classList.contains('is-refreshing')) return;
-            
             refreshBtn.classList.add('is-refreshing');
-            await fetchUpdates();
-            
-            setTimeout(() => {
-                refreshBtn.classList.remove('is-refreshing');
-            }, 600); // Minimum spin time for visual feedback
+            await syncSystem();
+            setTimeout(() => refreshBtn.classList.remove('is-refreshing'), 600);
         });
 
-        // Click to Copy via ID Box
+        // Click to Copy
         idBox.addEventListener('click', () => {
             if (!currentChatId) {
-                // Shake animation for error
                 gsap.fromTo(idBox, {x: -5}, {x: 5, duration: 0.05, yoyo: true, repeat: 5, onComplete: () => gsap.set(idBox, {x:0})});
                 showTempStatus('NO ID FOUND', true);
                 return;
             }
 
             navigator.clipboard.writeText(String(currentChatId)).then(() => {
-                // DOPE Copy Animation Sequence
+                tg.HapticFeedback?.notificationOccurred('success');
                 const tl = gsap.timeline();
                 
-                // Hide Text, Show Success Overlay
                 tl.to(idText, { opacity: 0, scale: 0.9, duration: 0.2 })
                   .to("#copy-success", { opacity: 1, duration: 0.2 }, "-=0.1")
                   .to(shieldPath, { opacity: 0, duration: 0.2 }, "-=0.4")
                   .to(checkPath, { display: "block", opacity: 1, stroke: "#30d158", duration: 0.2 }, "-=0.2");
 
-                // Revert after 1.5s
                 setTimeout(() => {
                     const tlRevert = gsap.timeline();
                     tlRevert.to("#copy-success", { opacity: 0, duration: 0.3 })
@@ -384,21 +386,16 @@
                             .to(checkPath, { opacity: 0, duration: 0.2, onComplete: () => checkPath.style.display = "none" }, "-=0.3")
                             .to(shieldPath, { opacity: 1, duration: 0.2 }, "-=0.1");
                 }, 1500);
-
             }).catch(() => {
                 showTempStatus('COPY FAILED', true);
             });
         });
 
         // ---------- INITIALIZATION ----------
-        fetchUpdates();
+        syncSystem();
         pollingInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') fetchUpdates();
-        }, 1800);
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') fetchUpdates();
-        });
+            if (document.visibilityState === 'visible') syncSystem();
+        }, 2000);
     </script>
 </body>
 </html>
