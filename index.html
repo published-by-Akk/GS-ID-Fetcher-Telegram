@@ -2,303 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Ghost Shield • Elite</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography,aspect-ratio,line-clamp"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <style type="text/tailwindcss">
-        @theme {
-            --accent-glow: rgba(48, 209, 88, 0.4);
-            --accent-solid: #30d158;
-            --bg-base: #030305;
-        }
-    </style>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>System Diagnostic</title>
     <style>
-        body {
-            background-color: #030305;
-            color: #ffffff;
-            font-family: 'Inter', sans-serif;
-            overflow: hidden;
-            -webkit-font-smoothing: antialiased;
-            background-image: radial-gradient(circle at 50% 0%, #121216 0%, #030305 70%);
-            background-attachment: fixed;
-            min-height: 100vh;
+        body { 
+            background: #ffffff; 
+            color: #000000; 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            font-size: 22px; 
+            font-weight: bold;
+            margin: 0; 
+            padding: 0;
+            height: 100vh;
+            overflow: hidden; /* Prevents double scrollbars on body */
+        }
+        #container {
+            width: 100%;
+            max-width: 600px; 
+            margin: 0 auto;
+            height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1.5rem;
-            margin: 0;
+            flex-direction: column;
+            overflow-y: auto; /* Adds manual scroll for contingency */
+            scroll-behavior: smooth;
         }
-
-        body::before {
-            content: "";
-            position: fixed;
-            inset: 0;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 50;
-            opacity: 0.6;
-        }
-
-        .glow-orb {
-            position: absolute;
-            border-radius: 50%;
-            filter: blur(60px);
-            z-index: 0;
-            pointer-events: none;
-            opacity: 0.4;
-            will-change: transform;
-        }
-        .orb-1 { top: -10%; right: -10%; width: 300px; height: 300px; background: radial-gradient(circle, rgba(48,209,88,0.15), transparent 70%); }
-        .orb-2 { bottom: -20%; left: -10%; width: 350px; height: 350px; background: radial-gradient(circle, rgba(0,119,255,0.08), transparent 70%); }
-
-        .glass-panel {
-            background: rgba(20, 20, 23, 0.5);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            position: relative;
-            z-index: 10;
-            will-change: opacity, transform;
-        }
-
-        .shiny-silver {
-            background: linear-gradient(120deg, #888 0%, #ddd 35%, #fff 50%, #ddd 65%, #888 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 4s linear infinite;
-        }
-        
-        .shiny-emerald {
-            background: linear-gradient(120deg, #1aa345 0%, #30d158 35%, #81f49e 50%, #30d158 65%, #1aa345 100%);
-            background-size: 200% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-            animation: shine 3.5s linear infinite;
-            filter: drop-shadow(0 0 12px rgba(48, 209, 88, 0.2));
-        }
-
-        @keyframes shine { to { background-position: 200% center; } }
-
-        /* Fixed Status Bar Alignment */
-        #status-container {
+        #log {
+            flex-grow: 1;
             display: flex;
-            align-items: center;
-            line-height: 1;
+            flex-direction: column;
+            justify-content: flex-end; /* Keeps newest messages at the bottom */
         }
-
-        .radar-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #3f3f46;
-            flex-shrink: 0;
-            transition: background 0.4s ease, box-shadow 0.4s ease;
-            position: relative;
+        .entry {
+            padding: 12px 20px;
+            border-bottom: 2px solid #f1f5f9;
+            display: flex;
+            flex-direction: column;
         }
-        
-        .status-active .radar-dot {
-            background: #30d158;
-            box-shadow: 0 0 12px rgba(48, 209, 88, 0.6);
+        .time { 
+            color: #94a3b8; 
+            font-family: monospace; 
+            font-size: 12px; 
+            margin-bottom: 4px;
         }
-
-        .status-active #status-text {
-            color: #30d158;
-            text-shadow: 0 0 8px rgba(48, 209, 88, 0.3);
+        .msg { 
+            line-height: 1.2;
+            word-wrap: break-word;
         }
-
-        .status-active .radar-dot::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1.5px solid #30d158;
-            animation: radar-pulse 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) infinite;
-            pointer-events: none;
-        }
-
-        @keyframes radar-pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            100% { transform: scale(3.5); opacity: 0; }
-        }
-
-        .id-container {
-            font-family: 'JetBrains Mono', monospace;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: inset 0 2px 15px rgba(0,0,0,0.5);
-            transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .id-container::before {
-            content: '';
-            position: absolute;
-            top: 0; left: -100%; width: 50%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
-            transform: skewX(-20deg);
-        }
-
-        .id-container:hover::before {
-            left: 150%;
-            transition: 0.7s ease-in-out;
-        }
-
-        .is-refreshing svg {
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        #cursor { color: #e2e8f0; padding: 20px; font-size: 30px; animation: blink 1s infinite;}
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
-
-    <div class="glow-orb orb-1"></div>
-    <div class="glow-orb orb-2"></div>
-
-    <div id="app-container" class="glass-panel w-full max-w-[420px] rounded-[32px] p-8 flex flex-col items-center opacity-0 translate-y-8">
-        
-        <div class="w-16 h-16 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-950 flex items-center justify-center border border-zinc-700/50 shadow-[0_0_20px_rgba(48,209,88,0.1)] mb-6 relative group">
-            <svg class="w-7 h-7 text-zinc-300" id="shield-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" class="hidden" id="check-path"/>
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" id="shield-path"/>
-            </svg>
-        </div>
-
-        <div class="text-center mb-8 w-full">
-            <h1 class="text-3xl font-bold tracking-tight mb-1 flex flex-col gap-1">
-                <span class="shiny-silver">GHOST SHIELD</span>
-                <span class="shiny-emerald text-[11px] tracking-[0.4em] uppercase">System ID</span>
-            </h1>
-            <p id="instruction" class="text-zinc-500 text-xs mt-4 font-medium tracking-wide">
-                Initialize bot with <span class="text-zinc-300 font-bold bg-white/5 px-2 py-0.5 rounded border border-white/10">/start</span>
-            </p>
-        </div>
-
-        <div class="w-full flex items-center justify-between bg-black/40 border border-white/5 rounded-full px-5 py-3 mb-6 backdrop-blur-md">
-            <div id="status-container" class="flex items-center gap-3">
-                <div class="flex items-center justify-center w-4 h-4">
-                    <div class="radar-dot"></div>
-                </div>
-                <span id="status-text" class="text-[10px] text-zinc-500 font-bold uppercase tracking-[0.2em] transition-all duration-500">
-                    Listening...
-                </span>
-            </div>
-            
-            <button id="manual-refresh" class="p-1.5 rounded-full hover:bg-white/10 text-zinc-500 hover:text-zinc-300 transition-colors">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-            </button>
-        </div>
-
-        <div id="id-box" class="id-container w-full h-[88px] rounded-2xl flex items-center justify-center cursor-pointer group mb-4">
-            <div class="absolute inset-0 flex items-center justify-center">
-                <span id="id-text" class="text-2xl font-bold text-zinc-600 tracking-[0.2em]">WAITING</span>
-            </div>
-            <div id="copy-success" class="absolute inset-0 bg-[#30d158]/10 backdrop-blur-sm flex items-center justify-center opacity-0 pointer-events-none border border-[#30d158]/30 rounded-2xl">
-                <span class="text-[#30d158] text-sm font-bold tracking-[0.2em] flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
-                    COPIED
-                </span>
-            </div>
-        </div>
-
-        <div class="flex items-center gap-2 text-[10px] font-medium text-zinc-600 tracking-widest uppercase mt-2">
-            <svg class="w-3 h-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15.042 21.672 13.684 16.6m0 0-2.51 2.225.569-9.47 5.227 7.917-3.286-.672ZM12 2.25V4.5m5.834.166-1.591 1.591M20.25 10.5H18M7.757 14.743l-1.59 1.59M6 10.5H3.75m4.007-4.243-1.59-1.59" />
-            </svg>
-            <span>Click ID Box to Copy</span>
-        </div>
+    <div id="container" id="scroll-zone">
+        <div id="log"></div>
+        <div id="cursor">_</div>
     </div>
 
     <script>
-        const TOKEN = '8616153416:AAHYp4lkOetXogz_ebqZPn1lXhUZLCjHAyY';
-        const BASE_URL = `https://api.telegram.org/bot${TOKEN}/getUpdates`;
-        const tg = window.Telegram.WebApp;
-        
-        let currentChatId = null;
-        
-        const idText = document.getElementById('id-text');
-        const idBox = document.getElementById('id-box');
-        const statusContainer = document.getElementById('status-container');
-        const statusText = document.getElementById('status-text');
-        const refreshBtn = document.getElementById('manual-refresh');
-        const instruction = document.getElementById('instruction');
-        const shieldPath = document.getElementById('shield-path');
-        const checkPath = document.getElementById('check-path');
+        const token = '8616153416:AAHYp4lkOetXogz_ebqZPn1lXhUZLCjHAyY';
+        let lastId = 0;
+        const processedIds = new Set(); 
+        const container = document.getElementById('container');
 
-        window.addEventListener('load', () => {
-            tg.expand();
-            tg.ready();
-            gsap.to("#app-container", { opacity: 1, y: 0, duration: 0.8, ease: "expo.out" });
-        });
-
-        function setConnectedState(id) {
-            if (!id || currentChatId === id) return;
-            currentChatId = id;
-            idText.innerText = id;
-            idText.className = "text-2xl font-bold text-zinc-100 tracking-widest transition-all duration-300";
-            statusContainer.classList.add('status-active');
-            statusText.innerText = "LINK ESTABLISHED";
-            instruction.innerText = 'System Active. Ready for config.';
-            gsap.to(shieldPath, { stroke: "#30d158", duration: 0.5 });
-        }
-
-        async function syncSystem() {
-            if (tg.initDataUnsafe?.user?.id) {
-                setConnectedState(tg.initDataUnsafe.user.id);
-                return;
-            }
-            if (currentChatId) return; 
-
+        async function fetchLogs() {
             try {
-                const response = await fetch(`${BASE_URL}?limit=1`, { cache: 'no-store' });
-                const data = await response.json();
-                if (data.ok && data.result.length > 0) {
-                    const chatId = data.result[0].message?.chat?.id || data.result[0].edited_message?.chat?.id || data.result[0].channel_post?.chat?.id;
-                    if (chatId) setConnectedState(chatId);
+                const r = await fetch(`https://api.telegram.org/bot${token}/getUpdates?offset=${lastId + 1}`);
+                const d = await r.json();
+                if (d.result && d.result.length > 0) {
+                    d.result.forEach(u => {
+                        if (u.message && u.message.text && !processedIds.has(u.update_id)) {
+                            const div = document.createElement('div');
+                            div.className = 'entry';
+                            const timeStr = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+                            div.innerHTML = `<span class="time">${timeStr}</span><span class="msg">${u.message.text}</span>`;
+                            document.getElementById('log').appendChild(div);
+                            
+                            processedIds.add(u.update_id); 
+                            lastId = u.update_id;
+                            
+                            // Auto-scroll to bottom
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    });
                 }
-            } catch (err) {}
+            } catch (e) {}
         }
+        
+        setInterval(fetchLogs, 1500); 
 
-        refreshBtn.addEventListener('click', async () => {
-            refreshBtn.classList.add('is-refreshing');
-            await syncSystem();
-            setTimeout(() => refreshBtn.classList.remove('is-refreshing'), 600);
-        });
-
-        idBox.addEventListener('click', () => {
-            if (!currentChatId) return;
-            navigator.clipboard.writeText(String(currentChatId)).then(() => {
-                tg.HapticFeedback?.notificationOccurred('success');
-                const tl = gsap.timeline();
-                tl.to(idText, { opacity: 0, duration: 0.2 })
-                  .to("#copy-success", { opacity: 1, duration: 0.2 }, "-=0.1")
-                  .to(shieldPath, { opacity: 0, duration: 0.2 }, "-=0.2")
-                  .to(checkPath, { display: "block", opacity: 1, stroke: "#30d158", duration: 0.2 }, "-=0.2");
-
-                setTimeout(() => {
-                    const rev = gsap.timeline();
-                    rev.to("#copy-success", { opacity: 0, duration: 0.2 })
-                       .to(idText, { opacity: 1, duration: 0.2 }, "-=0.1")
-                       .to(checkPath, { opacity: 0, duration: 0.2, onComplete: () => checkPath.style.display="none" }, "-=0.2")
-                       .to(shieldPath, { opacity: 1, duration: 0.2 }, "-=0.1");
-                }, 1500);
-            });
-        });
-
-        syncSystem();
-        setInterval(() => { if (!currentChatId) syncSystem(); }, 3000);
+        if ('wakeLock' in navigator) {
+            navigator.wakeLock.request('screen').catch(()=>{});
+        }
     </script>
 </body>
 </html>
